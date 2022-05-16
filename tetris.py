@@ -238,7 +238,23 @@ class ZBlock(Block):
         return "ZBlock"
 
 class BlocksGroup(pygame.sprite.OrderedUpdates):
-#current_state
+
+    def process_current_state(self):
+        # Recieives current state to predict best move
+        # Check if there's a new piece in the board
+        if self.current_block.y == 0:
+            # Analyze all possible moves and score them
+            possible_moves_scored = self.score_all_possible_moves()
+            # Pick best one
+            highest_score = possible_moves_scored[0]["score"]
+            self.current_selected_move = possible_moves_scored[0]
+            for move in possible_moves_scored:
+                if move["score"] > highest_score:
+                    highest_score = move["score"]
+                    # Use that as the next general trajectory
+                    self.current_selected_move = move
+        # Pick move in movement frame from current trajectory
+
     def score_all_possible_moves(self):
         # Analyse all possible moves
         possible_moves = []
@@ -326,14 +342,15 @@ class BlocksGroup(pygame.sprite.OrderedUpdates):
     def score_state(self,possible_final_state):
     # Use formula to score this possible grid
         aggregate_height = self.aggregate_height(possible_final_state)
-        complete_lines = self.complete_lines
         holes = self.holes(possible_final_state)
         bumpiness = self.bumpiness(possible_final_state)
+        completelines = self.a_complete_lines(possible_final_state)
+        
         a = -0.510066
         b = 0.760666
         c = -0.35663
         d = -0.184483
-        state_score = a * aggregate_height + b * complete_lines + \
+        state_score = a * aggregate_height + b * completelines + \
                         c * holes + d * bumpiness
         return state_score
 
@@ -348,7 +365,9 @@ class BlocksGroup(pygame.sprite.OrderedUpdates):
         self._ignore_next_stop = False
         self.score = 0
         self.complete_lines = 0
+        self.current_selected_move = {'rotation_mode': 3, 'i': 18, 'j': 0, 'score': -100000.288744}
         self.next_block = None
+        self.just_created_new_block = False
         # Not really moving, just to initialize the attribute.
         self.stop_moving_current_block()
         # The first block.
@@ -414,6 +433,7 @@ class BlocksGroup(pygame.sprite.OrderedUpdates):
         self.grid = [[0 for _ in range(10)] for _ in range(20)]
     
     def _create_new_block(self):
+        self.just_created_new_block = True
         new_block = self.next_block or BlocksGroup.get_random_block()
         if Block.collide(new_block, self):
             raise TopReached
@@ -451,16 +471,16 @@ class BlocksGroup(pygame.sprite.OrderedUpdates):
         # First check if there's something to move.
         if self._current_block_movement_heading is None:
             return
-        """ action = {
+
+        action = {
             pygame.K_DOWN: self.current_block.move_down,
             pygame.K_LEFT: self.current_block.move_left,
             pygame.K_RIGHT: self.current_block.move_right
-        } """
-        action = random.choice([self.current_block.move_left,self.current_block.move_right])
+        }
         try:
             # Each function requires the group as the first argument
             # to check any possible collision.
-            action(self)
+            action[self._current_block_movement_heading](self)
         except BottomReached:
             self.stop_moving_current_block()
             self._create_new_block()
@@ -527,6 +547,18 @@ class BlocksGroup(pygame.sprite.OrderedUpdates):
                     aggregate_height += len(possible_final_state) - i
         return aggregate_height
 
+    def a_complete_lines(self,possible_final_state):
+        # Calculate number complete lines
+        completelines = 0
+        for i in range(len(possible_final_state)):
+            full_row = True
+            for j in range(len(possible_final_state[i])):
+                if possible_final_state[i][j] == 0:
+                    full_row = False
+            if full_row:
+                completelines += 1
+        return completelines
+
         
 
 def draw_grid(background):
@@ -582,8 +614,8 @@ def main():
     MOVEMENT_KEYS = pygame.K_LEFT, pygame.K_RIGHT, pygame.K_DOWN
     EVENT_UPDATE_CURRENT_BLOCK = pygame.USEREVENT + 1
     EVENT_MOVE_CURRENT_BLOCK = pygame.USEREVENT + 2
-    pygame.time.set_timer(EVENT_UPDATE_CURRENT_BLOCK, 10)
-    pygame.time.set_timer(EVENT_MOVE_CURRENT_BLOCK, 5)
+    pygame.time.set_timer(EVENT_UPDATE_CURRENT_BLOCK, 1000)
+    pygame.time.set_timer(EVENT_MOVE_CURRENT_BLOCK, 100)
     
     blocks = BlocksGroup()
     
@@ -598,21 +630,20 @@ def main():
             if game_over or paused:
                 continue
             
-            action = random.choice([blocks.start_moving_current_block(pygame.K_LEFT),blocks.rotate_current_block()])
-            action
-            #print("Blocks below???",blocks.blocks_below())
-            """ print("NEWGRID:",blocks.create_final_state())
-            print("OLDGRID",blocks.grid)
-            print("Aloha")
-            
-            #print("GRIDsize",len(blocks.grid))
-            
-            print("current block:",blocks.current_block)
-            print("x current block:",blocks.current_block.x)
-            print("y current block:",blocks.current_block.y)
-            print("struct current block:",blocks.current_block.struct)
-            """
-            print("posible scores", blocks.score_all_possible_moves())
+            if blocks.just_created_new_block:
+                blocks.process_current_state()
+                print("selected move: " , blocks.current_selected_move)
+                for i in range(blocks.current_selected_move['rotation_mode'] + 1):
+                    blocks.rotate_current_block()
+                if blocks.current_selected_move['j']> 4:
+                    for j in range(blocks.current_selected_move['j'] - blocks.current_block.x):
+                        blocks._current_block_movement_heading = 1073741903
+                        blocks.current_block.move_right
+                if blocks.current_selected_move['j']< 4:
+                    for j in range(blocks.current_block.x - blocks.current_selected_move['j']):
+                        blocks._current_block_movement_heading = 1073741904
+                        blocks.current_block.move_left
+                blocks.just_created_new_block = False
             try:
                 if event.type == EVENT_UPDATE_CURRENT_BLOCK:
                     blocks.update_current_block()
