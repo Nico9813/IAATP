@@ -253,7 +253,7 @@ class BlocksGroup(pygame.sprite.OrderedUpdates):
                     highest_score = move["score"]
                     # Use that as the next general trajectory
                     self.current_selected_move = move
-        print("rotation_mode:",self.current_selected_move["rotation_mode"],", i:",self.current_selected_move["i"],", j:",self.current_selected_move["j"],", score:",self.current_selected_move["score"])                
+        #print("rotation_mode:",self.current_selected_move["rotation_mode"],", i:",self.current_selected_move["i"],", j:",self.current_selected_move["j"],", score:",self.current_selected_move["score"])                
         # Pick move in movement frame from current trajectory
 
     def score_all_possible_moves(self):
@@ -638,17 +638,16 @@ def main():
                 continue
             
             if blocks.just_created_new_block:
+                blocks.stop_moving_current_block()
                 blocks.process_current_state()
                 for i in range(blocks.current_selected_move['rotation_mode'] + 1):
-                    blocks.rotate_current_block()
+                    blocks.rotate_current_block()   
                 if blocks.current_selected_move['j']> 4:
                     for j in range(blocks.current_selected_move['j'] - blocks.current_block.x):
-                        blocks._current_block_movement_heading = 1073741903
-                        blocks.current_block.move_right
+                        blocks.current_block.move_right(blocks)
                 if blocks.current_selected_move['j']< 4:
                     for j in range(blocks.current_block.x - blocks.current_selected_move['j']):
-                        blocks._current_block_movement_heading = 1073741904
-                        blocks.current_block.move_left
+                        blocks.current_block.move_left(blocks)
                 blocks.just_created_new_block = False
             try:
                 if event.type == EVENT_UPDATE_CURRENT_BLOCK:
