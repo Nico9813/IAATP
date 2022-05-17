@@ -592,93 +592,103 @@ def draw_centered_surface(screen, surface, y):
     screen.blit(surface, (400 - surface.get_width()/2, y))
 
 
-def main():
-    pygame.init()
-    pygame.display.set_caption("Tetris con PyGame")
-    screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
-    run = True
-    paused = False
-    game_over = False
-    # Create background.
-    background = pygame.Surface(screen.get_size())
-    bgcolor = (0, 0, 0)
-    background.fill(bgcolor)
-    # Draw the grid on top of the background.
-    draw_grid(background)
-    # This makes blitting faster.
-    background = background.convert()
-    
-    try:
-        font = pygame.font.Font("Roboto-Regular.ttf", 20)
-    except OSError:
-        # If the font file is not available, the default will be used.
-        pass
-    next_block_text = font.render(
-        "Siguiente figura:", True, (255, 255, 255), bgcolor)
-    score_msg_text = font.render(
-        "Puntaje:", True, (255, 255, 255), bgcolor)
-    game_over_text = font.render(
-        "¡Juego terminado!", True, (255, 220, 0), bgcolor)
-    
-    # Event constants.
-    MOVEMENT_KEYS = pygame.K_LEFT, pygame.K_RIGHT, pygame.K_DOWN
-    EVENT_UPDATE_CURRENT_BLOCK = pygame.USEREVENT + 1
-    EVENT_MOVE_CURRENT_BLOCK = pygame.USEREVENT + 2
-    pygame.time.set_timer(EVENT_UPDATE_CURRENT_BLOCK, 100)
-    pygame.time.set_timer(EVENT_MOVE_CURRENT_BLOCK, 10)
-    
-    blocks = BlocksGroup([-0.510066,0.760666,-0.35663,-0.184483])
-    
-    while run:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                run = False
-                break
+#blocks = BlocksGroup([-0.510066,0.760666,-0.35663,-0.184483])
 
-            if event.type == pygame.KEYUP:
-                paused = not paused
-            # Stop moving blocks if the game is over or paused.
-            if game_over or paused:
-                continue
-            
-            if blocks.just_created_new_block:
-                blocks.stop_moving_current_block()
-                blocks.process_current_state()
-                for i in range(blocks.current_selected_move['rotation_mode'] + 1):
-                    blocks.rotate_current_block()   
-                if blocks.current_selected_move['j']> 4:
-                    for j in range(blocks.current_selected_move['j'] - blocks.current_block.x):
-                        blocks.current_block.move_right(blocks)
-                if blocks.current_selected_move['j']< 4:
-                    for j in range(blocks.current_block.x - blocks.current_selected_move['j']):
-                        blocks.current_block.move_left(blocks)
-                blocks.just_created_new_block = False
-            try:
-                if event.type == EVENT_UPDATE_CURRENT_BLOCK:
-                    blocks.update_current_block()
-                elif event.type == EVENT_MOVE_CURRENT_BLOCK:
-                    blocks.move_current_block()
-            except TopReached:
-                game_over = True
+class TetrisPlayer():
+    def __init__(self):
+        super().__init__()
+    def play_game(self,parameters):
+        pygame.init()
+        pygame.display.set_caption("Tetris con PyGame")
+        screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+        run = True
+        paused = False
+        game_over = False
+        # Create background.
+        background = pygame.Surface(screen.get_size())
+        bgcolor = (0, 0, 0)
+        background.fill(bgcolor)
+        # Draw the grid on top of the background.
+        draw_grid(background)
+        # This makes blitting faster.
+        background = background.convert()
         
-        # Draw background and grid.
-        screen.blit(background, (0, 0))
-        # Blocks.
-        blocks.draw(screen)
-        # Sidebar with misc. information.
-        draw_centered_surface(screen, next_block_text, 50)
-        draw_centered_surface(screen, blocks.next_block.image, 100)
-        draw_centered_surface(screen, score_msg_text, 240)
-        score_text = font.render(
-            str(blocks.score), True, (255, 255, 255), bgcolor)
-        draw_centered_surface(screen, score_text, 270)
-        if game_over:
-            draw_centered_surface(screen, game_over_text, 360)
-        # Update.
-        pygame.display.flip()
-    
-    pygame.quit()
+        try:
+            font = pygame.font.Font("Roboto-Regular.ttf", 20)
+        except OSError:
+            # If the font file is not available, the default will be used.
+            pass
+        next_block_text = font.render(
+            "Siguiente figura:", True, (255, 255, 255), bgcolor)
+        score_msg_text = font.render(
+            "Puntaje:", True, (255, 255, 255), bgcolor)
+        game_over_text = font.render(
+            "¡Juego terminado!", True, (255, 220, 0), bgcolor)
+        
+        # Event constants.
+        MOVEMENT_KEYS = pygame.K_LEFT, pygame.K_RIGHT, pygame.K_DOWN
+        EVENT_UPDATE_CURRENT_BLOCK = pygame.USEREVENT + 1
+        EVENT_MOVE_CURRENT_BLOCK = pygame.USEREVENT + 2
+        pygame.time.set_timer(EVENT_UPDATE_CURRENT_BLOCK, 100)
+        pygame.time.set_timer(EVENT_MOVE_CURRENT_BLOCK, 10)
+        
+        blocks = BlocksGroup(parameters)
+        while run:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    run = False
+                    break
 
+                if event.type == pygame.KEYUP:
+                    paused = not paused
+                # Stop moving blocks if the game is over or paused.
+                if game_over:
+                    return blocks.score
+
+                if paused:
+                    continue
+                
+                if blocks.just_created_new_block:
+                    blocks.stop_moving_current_block()
+                    blocks.process_current_state()
+                    for i in range(blocks.current_selected_move['rotation_mode'] + 1):
+                        blocks.rotate_current_block()   
+                    if blocks.current_selected_move['j']> 4:
+                        for j in range(blocks.current_selected_move['j'] - blocks.current_block.x):
+                            blocks.current_block.move_right(blocks)
+                    if blocks.current_selected_move['j']< 4:
+                        for j in range(blocks.current_block.x - blocks.current_selected_move['j']):
+                            blocks.current_block.move_left(blocks)
+                    blocks.just_created_new_block = False
+                try:
+                    if event.type == EVENT_UPDATE_CURRENT_BLOCK:
+                        blocks.update_current_block()
+                    elif event.type == EVENT_MOVE_CURRENT_BLOCK:
+                        blocks.move_current_block()
+                except TopReached:
+                    game_over = True
+            
+            # Draw background and grid.
+            screen.blit(background, (0, 0))
+            # Blocks.
+            blocks.draw(screen)
+            # Sidebar with misc. information.
+            draw_centered_surface(screen, next_block_text, 50)
+            draw_centered_surface(screen, blocks.next_block.image, 100)
+            draw_centered_surface(screen, score_msg_text, 240)
+            score_text = font.render(
+                str(blocks.score), True, (255, 255, 255), bgcolor)
+            draw_centered_surface(screen, score_text, 270)
+            if game_over:
+                draw_centered_surface(screen, game_over_text, 360)
+            # Update.
+            pygame.display.flip()
+        
+        pygame.quit()
+
+def main():
+    tetrisPlayer = TetrisPlayer()
+    tetrisPlayer.play_game([-0.510066,0.760666,-0.35663,-0.184483])
 
 if __name__ == "__main__":
     main()
