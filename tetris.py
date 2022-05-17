@@ -351,12 +351,12 @@ class BlocksGroup(pygame.sprite.OrderedUpdates):
         bumpiness = self.bumpiness(possible_final_state)
         completelines = self.a_complete_lines(possible_final_state)
         
-        a = -0.510066
+        """ a = -0.510066
         b = 0.760666
         c = -0.35663
-        d = -0.184483
-        state_score = a * aggregate_height + b * completelines + \
-                        c * holes + d * bumpiness
+        d = -0.184483 """
+        state_score = self.a * aggregate_height + self.b * completelines + \
+                        self.c * holes + self.d * bumpiness
         return state_score
 
     @staticmethod
@@ -364,10 +364,14 @@ class BlocksGroup(pygame.sprite.OrderedUpdates):
         return random.choice(
             (SquareBlock, TBlock, LineBlock, LBlock, ZBlock))()
     
-    def __init__(self, *args, **kwargs):
-        super().__init__(self, *args, **kwargs)
+    def __init__(self, coeficientes):
+        super().__init__(self)
         self._reset_grid()
         self._ignore_next_stop = False
+        self.a = coeficientes[0]
+        self.b = coeficientes[1]
+        self.c = coeficientes[2]
+        self.d = coeficientes[3]
         self.score = 0
         self.complete_lines = 0
         self.current_selected_move = {'rotation_mode': 3, 'i': 18, 'j': 0, 'score': -100000.288744}
@@ -623,7 +627,7 @@ def main():
     pygame.time.set_timer(EVENT_UPDATE_CURRENT_BLOCK, 100)
     pygame.time.set_timer(EVENT_MOVE_CURRENT_BLOCK, 10)
     
-    blocks = BlocksGroup()
+    blocks = BlocksGroup([-0.510066,0.760666,-0.35663,-0.184483])
     
     while run:
         for event in pygame.event.get():
