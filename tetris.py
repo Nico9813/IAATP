@@ -253,6 +253,7 @@ class BlocksGroup(pygame.sprite.OrderedUpdates):
                     highest_score = move["score"]
                     # Use that as the next general trajectory
                     self.current_selected_move = move
+        print("rotation_mode:",self.current_selected_move["rotation_mode"],", i:",self.current_selected_move["i"],", j:",self.current_selected_move["j"],", score:",self.current_selected_move["score"])                
         # Pick move in movement frame from current trajectory
 
     def score_all_possible_moves(self):
@@ -273,33 +274,37 @@ class BlocksGroup(pygame.sprite.OrderedUpdates):
                     # Make the block go down until it stops
                     i_position += 1
                 # Create possible grid with this new position
-                possible_final_state = self.create_final_state()
+                possible_final_state = self.create_final_state(i_position,j_position)
                 # Score this position
                 possible_final_state_score = self.score_state(possible_final_state)
                 possible_moves.append({ "rotation_mode": rotation_mode, 
                                         "i": i_position, "j": j_position,
-                                        "score": possible_final_state_score })
+                                        "score": possible_final_state_score,
+                                        "state": possible_final_state })
         return possible_moves 
 
 #grid, shape, i_position, j_position
-    def create_final_state(self):
+    def create_final_state(self,i_position,j_position):
         # Add new possible piece position to grid to score this state
         new_full_grid = []
         for i in range(len(self.grid)):
             new_row = []
             for j in range(len(self.grid[i])):
-                if i >= self.current_block.y and i < self.current_block.y + self.current_block.struct.shape[0] and \
-                j >= self.current_block.x and j < self.current_block.x + self.current_block.struct.shape[1] and \
-                self.current_block.struct[i - self.current_block.y][j - self.current_block.x]:
+                if i >= i_position and i < i_position + self.current_block.struct.shape[0] and \
+                j >= j_position and j < j_position + self.current_block.struct.shape[1] and \
+                self.current_block.struct[i - i_position][j - j_position]:
                     new_row.append(1)
                 else:
                     new_row.append(self.grid[i][j])
+                
             new_full_grid.append(new_row)
-                    
+        for i in range(self.current_block.struct.shape[0]):
+            for j in range(self.current_block.struct.shape[1]):
+                new_full_grid[i][j+4] = 0
         return new_full_grid
         
 
-    def blocks_below(self):
+    def blocks_beloww(self):
         # Check if there are blocks below or if it can keep going down
         
         # First check if it reached the end of the world
@@ -434,6 +439,7 @@ class BlocksGroup(pygame.sprite.OrderedUpdates):
     
     def _create_new_block(self):
         self.just_created_new_block = True
+        self._ignore_next_stop = False
         new_block = self.next_block or BlocksGroup.get_random_block()
         if Block.collide(new_block, self):
             raise TopReached
@@ -614,8 +620,8 @@ def main():
     MOVEMENT_KEYS = pygame.K_LEFT, pygame.K_RIGHT, pygame.K_DOWN
     EVENT_UPDATE_CURRENT_BLOCK = pygame.USEREVENT + 1
     EVENT_MOVE_CURRENT_BLOCK = pygame.USEREVENT + 2
-    pygame.time.set_timer(EVENT_UPDATE_CURRENT_BLOCK, 1000)
-    pygame.time.set_timer(EVENT_MOVE_CURRENT_BLOCK, 100)
+    pygame.time.set_timer(EVENT_UPDATE_CURRENT_BLOCK, 100)
+    pygame.time.set_timer(EVENT_MOVE_CURRENT_BLOCK, 10)
     
     blocks = BlocksGroup()
     
@@ -624,15 +630,15 @@ def main():
             if event.type == pygame.QUIT:
                 run = False
                 break
-            
-            
+
+            if event.type == pygame.KEYUP:
+                paused = not paused
             # Stop moving blocks if the game is over or paused.
             if game_over or paused:
                 continue
             
             if blocks.just_created_new_block:
                 blocks.process_current_state()
-                print("selected move: " , blocks.current_selected_move)
                 for i in range(blocks.current_selected_move['rotation_mode'] + 1):
                     blocks.rotate_current_block()
                 if blocks.current_selected_move['j']> 4:
