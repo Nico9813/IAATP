@@ -8,7 +8,6 @@
 
 from collections import OrderedDict
 import random
-from typing_extensions import Self
 
 from pygame import Rect
 import pygame
@@ -355,8 +354,7 @@ class BlocksGroup(pygame.sprite.OrderedUpdates):
         b = 0.760666
         c = -0.35663
         d = -0.184483 """
-        state_score = self.a * aggregate_height + self.b * completelines + \
-                        self.c * holes + self.d * bumpiness
+        state_score = self.a * aggregate_height + self.b * completelines + self.c * holes + self.d * bumpiness
         return state_score
 
     @staticmethod
@@ -629,8 +627,8 @@ class TetrisPlayer():
         MOVEMENT_KEYS = pygame.K_LEFT, pygame.K_RIGHT, pygame.K_DOWN
         EVENT_UPDATE_CURRENT_BLOCK = pygame.USEREVENT + 1
         EVENT_MOVE_CURRENT_BLOCK = pygame.USEREVENT + 2
-        pygame.time.set_timer(EVENT_UPDATE_CURRENT_BLOCK, 100)
-        pygame.time.set_timer(EVENT_MOVE_CURRENT_BLOCK, 10)
+        pygame.time.set_timer(EVENT_UPDATE_CURRENT_BLOCK, 1)
+        pygame.time.set_timer(EVENT_MOVE_CURRENT_BLOCK, 1)
         
         blocks = BlocksGroup(parameters)
         while run:
@@ -686,9 +684,9 @@ class TetrisPlayer():
         
         pygame.quit()
 
-def main():
+def getScore(params):
     tetrisPlayer = TetrisPlayer()
-    tetrisPlayer.play_game([-0.510066,0.760666,-0.35663,-0.184483])
-
-if __name__ == "__main__":
-    main()
+    score = tetrisPlayer.play_game(params)
+    print([str(x) for x in params])
+    print(score)
+    return [score]

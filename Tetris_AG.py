@@ -1,4 +1,3 @@
-import array
 import random
 
 from deap import algorithms
@@ -8,26 +7,24 @@ from deap import tools
 
 import numpy as np
 
+from tetris import getScore
+
 # Cantidad de Ciclos de la Corrida
 CANT_CICLOS = 150  # @param {type:"integer"}
 
 # Cantidad de Individuos en la Población
-CANT_INDIVIDUOS_POBLACION = 1000  #@param {type:"slider", min:1, max:100, step:1}
+CANT_INDIVIDUOS_POBLACION = 100  #@param {type:"slider", min:1, max:100, step:1}
 CANT_PROPIEDADES = 4
-
-# definimos la función de aptitud a evaluar
-def funcAptitud(individuo):
-    return [sum(individuo)]
 
 # Inicializa objeto Toolbox auxiliar
 toolbox = base.Toolbox()
 
 # indica que los individuos son una lista de genes que aplica la función antes definida
-creator.create("FitnessMax", base.Fitness, weights=(-1.0,))
+creator.create("FitnessMax", base.Fitness, weights=(1.0,))
 creator.create("Individual", list, fitness=creator.FitnessMax)
 
 # Attribute generator
-toolbox.register("attr_int",   random.randint, -100, 100)
+toolbox.register("attr_int", random.randint, -1000, 1000)
 
 # Structure initializers
 toolbox.register("individual", tools.initRepeat, creator.Individual, toolbox.attr_int, CANT_PROPIEDADES)
@@ -35,11 +32,10 @@ toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 
 pop = toolbox.population(n=CANT_INDIVIDUOS_POBLACION)
 
-for pop_ind in pop:
-    print(pop_ind)
+print(len(pop))
 
 # registra la función que se va a evaluar
-toolbox.register("evaluate", funcAptitud)
+toolbox.register("evaluate", getScore)
 toolbox.register("mate", tools.cxUniform, indpb=0.5)
 toolbox.register("select", tools.selTournament, tournsize=10)
 toolbox.register("mutate", tools.mutShuffleIndexes, indpb=0.5)
