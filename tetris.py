@@ -8,6 +8,7 @@
 
 from collections import OrderedDict
 import random
+from pip import main
 
 from pygame import Rect
 import pygame
@@ -85,21 +86,23 @@ class Block(pygame.sprite.Sprite):
         self._draw()
     
     def _draw(self, x=4, y=0):
-        width = len(self.struct[0]) * TILE_SIZE
+        width = len(self.struct[0]) * TILE_SIZE 
         height = len(self.struct) * TILE_SIZE
-        self.image = pygame.surface.Surface([width, height])
+        self.image = pygame.surface.Surface(
+            [width, height])
         self.image.set_colorkey((0, 0, 0))
         # Position and size
         self.rect = Rect(0, 0, width, height)
         self.x = x
         self.y = y
+        print(self.x, self.y)
         for y, row in enumerate(self.struct):
             for x, col in enumerate(row):
                 if col:
                     pygame.draw.rect(
                         self.image,
                         self.color,
-                        Rect(x*TILE_SIZE + 1, y*TILE_SIZE + 1,
+                        Rect(x*TILE_SIZE, y*TILE_SIZE + 1,
                              TILE_SIZE - 2, TILE_SIZE - 2)
                     )
         self._create_mask()
@@ -568,26 +571,25 @@ class BlocksGroup(pygame.sprite.OrderedUpdates):
         return completelines
 
         
-
-def draw_grid(background):
+def draw_grid(background, offsetx):
     """Draw the background grid."""
     grid_color = 50, 50, 50
     # Vertical lines.
     for i in range(11):
         x = TILE_SIZE * i
         pygame.draw.line(
-            background, grid_color, (x, 0), (x, GRID_HEIGHT)
+            background, grid_color, (x + offsetx, 0), (x + offsetx, GRID_HEIGHT)
         )
     # Horizontal liens.
     for i in range(21):
         y = TILE_SIZE * i
         pygame.draw.line(
-            background, grid_color, (0, y), (GRID_WIDTH, y)
+            background, grid_color, (offsetx, y), (GRID_WIDTH + offsetx, y)
         )
 
 
-def draw_centered_surface(screen, surface, y):
-    screen.blit(surface, (400 - surface.get_width()/2, y))
+def draw_centered_surface(screen, surface, y, x):
+    screen.blit(surface, (400 - surface.get_width()/2 + x, y))
 
 
 #blocks = BlocksGroup([-0.510066,0.760666,-0.35663,-0.184483])
@@ -595,21 +597,26 @@ def draw_centered_surface(screen, surface, y):
 class TetrisPlayer():
     def __init__(self):
         super().__init__()
-    def play_game(self,parameters):
+
+    def init_board(self):
         pygame.init()
         pygame.display.set_caption("Tetris con PyGame")
-        screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+        self.screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+        
+        # Create background.
+        self.background = pygame.Surface(self.screen.get_size())
+        self.bgcolor = (0, 0, 0)
+        self.background.fill(self.bgcolor)
+        
+
+    def play_game(self,parameters, xoffset):
         run = True
         paused = False
         game_over = False
-        # Create background.
-        background = pygame.Surface(screen.get_size())
-        bgcolor = (0, 0, 0)
-        background.fill(bgcolor)
         # Draw the grid on top of the background.
-        draw_grid(background)
+        draw_grid(self.background, offsetx=WINDOW_WIDTH * xoffset)
         # This makes blitting faster.
-        background = background.convert()
+        background = self.background.convert()
         
         try:
             font = pygame.font.Font("Roboto-Regular.ttf", 20)
@@ -617,18 +624,18 @@ class TetrisPlayer():
             # If the font file is not available, the default will be used.
             pass
         next_block_text = font.render(
-            "Siguiente figura:", True, (255, 255, 255), bgcolor)
+            "Siguiente figura:", True, (255, 255, 255), self.bgcolor)
         score_msg_text = font.render(
-            "Puntaje:", True, (255, 255, 255), bgcolor)
+            "Puntaje:", True, (255, 255, 255), self.bgcolor)
         game_over_text = font.render(
-            "¡Juego terminado!", True, (255, 220, 0), bgcolor)
+            "¡Juego terminado!", True, (255, 220, 0), self.bgcolor)
         
         # Event constants.
         MOVEMENT_KEYS = pygame.K_LEFT, pygame.K_RIGHT, pygame.K_DOWN
         EVENT_UPDATE_CURRENT_BLOCK = pygame.USEREVENT + 1
         EVENT_MOVE_CURRENT_BLOCK = pygame.USEREVENT + 2
-        pygame.time.set_timer(EVENT_UPDATE_CURRENT_BLOCK, 1)
-        pygame.time.set_timer(EVENT_MOVE_CURRENT_BLOCK, 1)
+        pygame.time.set_timer(EVENT_UPDATE_CURRENT_BLOCK, 100)
+        pygame.time.set_timer(EVENT_MOVE_CURRENT_BLOCK, 100)
         
         blocks = BlocksGroup(parameters)
         while run:
@@ -667,18 +674,19 @@ class TetrisPlayer():
                     game_over = True
             
             # Draw background and grid.
-            screen.blit(background, (0, 0))
+            self.screen.blit(background, (0, 0))
             # Blocks.
-            blocks.draw(screen)
+            blocks.draw(self.screen)
             # Sidebar with misc. information.
-            draw_centered_surface(screen, next_block_text, 50)
-            draw_centered_surface(screen, blocks.next_block.image, 100)
-            draw_centered_surface(screen, score_msg_text, 240)
+            draw_centered_surface(self.screen, next_block_text, 50, WINDOW_WIDTH * xoffset)
+            draw_centered_surface(self.screen, blocks.next_block.image, 100, WINDOW_WIDTH * xoffset)
+            draw_centered_surface(self.screen, score_msg_text, 240, WINDOW_WIDTH * xoffset)
             score_text = font.render(
-                str(blocks.score), True, (255, 255, 255), bgcolor)
-            draw_centered_surface(screen, score_text, 270)
+                str(blocks.score), True, (255, 255, 255), self.bgcolor)
+            draw_centered_surface(self.screen, score_text, 270, WINDOW_WIDTH * xoffset)
             if game_over:
-                draw_centered_surface(screen, game_over_text, 360)
+                draw_centered_surface(
+                    self.screen, game_over_text, 360, WINDOW_WIDTH * xoffset)
             # Update.
             pygame.display.flip()
         
@@ -686,7 +694,16 @@ class TetrisPlayer():
 
 def getScore(params):
     tetrisPlayer = TetrisPlayer()
-    score = tetrisPlayer.play_game(params)
+    score = tetrisPlayer.play_game(params, 0)
+    score = tetrisPlayer.play_game(params, 1)
     print([str(x) for x in params])
     print(score)
     return [score]
+
+
+if __name__ == "__main__":
+    tetrisPlayer = TetrisPlayer()
+    tetrisPlayer.init_board()
+    score = tetrisPlayer.play_game([0.5,0.5,0.5,0.5], 0)
+    print([str(x) for x in [0.5,0.5,0.5,0.5]])
+    print(score)

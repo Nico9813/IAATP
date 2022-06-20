@@ -9,54 +9,60 @@ import numpy as np
 
 from tetris import getScore
 
-# Cantidad de Ciclos de la Corrida
-CANT_CICLOS = 150  # @param {type:"integer"}
+import multiprocessing
 
-# Cantidad de Individuos en la Población
-CANT_INDIVIDUOS_POBLACION = 100  #@param {type:"slider", min:1, max:100, step:1}
-CANT_PROPIEDADES = 4
+if __name__ == "__main__":
+    # Create a minimizing fitness function
+    # Cantidad de Ciclos de la Corrida
+    CANT_CICLOS = 150  # @param {type:"integer"}
 
-# Inicializa objeto Toolbox auxiliar
-toolbox = base.Toolbox()
+    # Cantidad de Individuos en la Población
+    # @param {type:"slider", min:1, max:100, step:1}
+    CANT_INDIVIDUOS_POBLACION = 100
+    CANT_PROPIEDADES = 4
 
-# indica que los individuos son una lista de genes que aplica la función antes definida
-creator.create("FitnessMax", base.Fitness, weights=(1.0,))
-creator.create("Individual", list, fitness=creator.FitnessMax)
+    # Inicializa objeto Toolbox auxiliar
+    toolbox = base.Toolbox()
 
-# Attribute generator
-toolbox.register("attr_int", random.randint, -1000, 1000)
+    # indica que los individuos son una lista de genes que aplica la función antes definida
+    creator.create("FitnessMax", base.Fitness, weights=(1.0,))
+    creator.create("Individual", list, fitness=creator.FitnessMax)
 
-# Structure initializers
-toolbox.register("individual", tools.initRepeat, creator.Individual, toolbox.attr_int, CANT_PROPIEDADES)
-toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+    # Attribute generator
+    toolbox.register("attr_int", random.randint, -1000, 1000)
 
-pop = toolbox.population(n=CANT_INDIVIDUOS_POBLACION)
+    # Structure initializers
+    toolbox.register("individual", tools.initRepeat,
+                 creator.Individual, toolbox.attr_int, CANT_PROPIEDADES)
+    toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 
-print(len(pop))
+    pop = toolbox.population(n=CANT_INDIVIDUOS_POBLACION)
 
-# registra la función que se va a evaluar
-toolbox.register("evaluate", getScore)
-toolbox.register("mate", tools.cxUniform, indpb=0.5)
-toolbox.register("select", tools.selTournament, tournsize=10)
-toolbox.register("mutate", tools.mutShuffleIndexes, indpb=0.5)
+    print(len(pop))
 
-ngen = 100  # Gerations
-npop = 1000  # Population
+    # registra la función que se va a evaluar
+    toolbox.register("evaluate", getScore)
+    toolbox.register("mate", tools.cxUniform, indpb=0.5)
+    toolbox.register("select", tools.selTournament, tournsize=10)
+    toolbox.register("mutate", tools.mutShuffleIndexes, indpb=0.5)
 
-hof = tools.ParetoFront()
-stats = tools.Statistics(lambda ind: ind.fitness.values)
+    ngen = 100  # Gerations
+    npop = 1000  # Population
 
-# Statistics
-stats.register("avg", np.mean, axis=0)
-stats.register("std", np.std, axis=0)
-stats.register("min", np.min, axis=0)
-stats.register("max", np.max, axis=0)
+    hof = tools.ParetoFront()
+    stats = tools.Statistics(lambda ind: ind.fitness.values)
 
-# Evolution
-pop, logbook = algorithms.eaMuPlusLambda(pop, toolbox, mu=npop, lambda_=npop,
+    # Statistics
+    stats.register("avg", np.mean, axis=0)
+    stats.register("std", np.std, axis=0)
+    stats.register("min", np.min, axis=0)
+    stats.register("max", np.max, axis=0)
+
+    # Evolution
+    pop, logbook = algorithms.eaMuPlusLambda(pop, toolbox, mu=npop, lambda_=npop,
                                          cxpb=0.7,   mutpb=0.3, ngen=ngen,
                                          stats=stats, halloffame=hof)
 
-best_solution = tools.selBest(pop, 1)[0]
-print("")
-print("[{}] best_score: {}".format(logbook[-1]['gen'], logbook[-1]['min'][0]))
+    best_solution = tools.selBest(pop, 1)[0]
+    print("")
+    print("[{}] best_score: {}".format(logbook[-1]['gen'], logbook[-1]['min'][0]))
