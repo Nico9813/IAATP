@@ -6,6 +6,7 @@
     Copyright (C) 2018 Recursos Python - recursospython.com.
 """
 
+from time import time
 from collections import OrderedDict
 import random
 from pip import main
@@ -14,11 +15,12 @@ from pygame import Rect
 import pygame
 import numpy as np
 
+import ag_constants
+
 
 WINDOW_WIDTH, WINDOW_HEIGHT = 500, 601
 GRID_WIDTH, GRID_HEIGHT = 300, 600
 TILE_SIZE = 30
-
 
 def remove_empty_columns(arr, _x_offset=0, _keep_counting=True):
     """
@@ -95,7 +97,6 @@ class Block(pygame.sprite.Sprite):
         self.rect = Rect(0, 0, width, height)
         self.x = x
         self.y = y
-        print(self.x, self.y)
         for y, row in enumerate(self.struct):
             for x, col in enumerate(row):
                 if col:
@@ -480,6 +481,7 @@ class BlocksGroup(pygame.sprite.OrderedUpdates):
     
     def move_current_block(self):
         # First check if there's something to move.
+        
         if self._current_block_movement_heading is None:
             return
 
@@ -634,10 +636,11 @@ class TetrisPlayer():
         MOVEMENT_KEYS = pygame.K_LEFT, pygame.K_RIGHT, pygame.K_DOWN
         EVENT_UPDATE_CURRENT_BLOCK = pygame.USEREVENT + 1
         EVENT_MOVE_CURRENT_BLOCK = pygame.USEREVENT + 2
-        pygame.time.set_timer(EVENT_UPDATE_CURRENT_BLOCK, 100)
-        pygame.time.set_timer(EVENT_MOVE_CURRENT_BLOCK, 100)
+        pygame.time.set_timer(EVENT_UPDATE_CURRENT_BLOCK, 10)
+        pygame.time.set_timer(EVENT_MOVE_CURRENT_BLOCK, 5)
         
         blocks = BlocksGroup(parameters)
+        piezas_colocadas = 0
         while run:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -648,12 +651,14 @@ class TetrisPlayer():
                     paused = not paused
                 # Stop moving blocks if the game is over or paused.
                 if game_over:
-                    return blocks.score
+                    pygame.image.save(self.screen, "screenshot.jpg")
+                    return blocks.score + piezas_colocadas
 
                 if paused:
                     continue
                 
                 if blocks.just_created_new_block:
+                    piezas_colocadas += 1
                     blocks.stop_moving_current_block()
                     blocks.process_current_state()
                     for i in range(blocks.current_selected_move['rotation_mode'] + 1):
@@ -666,12 +671,11 @@ class TetrisPlayer():
                             blocks.current_block.move_left(blocks)
                     blocks.just_created_new_block = False
                 try:
-                    if event.type == EVENT_UPDATE_CURRENT_BLOCK:
-                        blocks.update_current_block()
-                    elif event.type == EVENT_MOVE_CURRENT_BLOCK:
-                        blocks.move_current_block()
+                    blocks.update_current_block()
                 except TopReached:
                     game_over = True
+                    return blocks.score
+                    
             
             # Draw background and grid.
             self.screen.blit(background, (0, 0))
@@ -681,9 +685,30 @@ class TetrisPlayer():
             draw_centered_surface(self.screen, next_block_text, 50, WINDOW_WIDTH * xoffset)
             draw_centered_surface(self.screen, blocks.next_block.image, 100, WINDOW_WIDTH * xoffset)
             draw_centered_surface(self.screen, score_msg_text, 240, WINDOW_WIDTH * xoffset)
+            
+            for idx, parameter in enumerate(parameters):
+                msg_text = font.render(
+                    chr(ord('A') + idx) + ":" + str(parameter), True, (255, 255, 255), self.bgcolor)
+                actual_y = 320 + 40 * idx
+                draw_centered_surface(
+                    self.screen, msg_text, actual_y, WINDOW_WIDTH * xoffset)
+                
+
             score_text = font.render(
                 str(blocks.score), True, (255, 255, 255), self.bgcolor)
-            draw_centered_surface(self.screen, score_text, 270, WINDOW_WIDTH * xoffset)
+            draw_centered_surface(self.screen, score_text,
+                                  270, WINDOW_WIDTH * xoffset)
+
+            gen_text = font.render(
+                "Generacion:" + str(int(ag_constants.ejecution_number / ag_constants.npop)), True, (255, 255, 255), self.bgcolor)
+            draw_centered_surface(
+                self.screen, gen_text, actual_y + 30 + 30, WINDOW_WIDTH * xoffset)
+
+            pop_text = font.render(
+                "Individuo:" + str(ag_constants.ejecution_number % ag_constants.npop), True, (255, 255, 255), self.bgcolor)
+            draw_centered_surface(
+                self.screen, pop_text, actual_y + 30 + 60, WINDOW_WIDTH * xoffset)
+
             if game_over:
                 draw_centered_surface(
                     self.screen, game_over_text, 360, WINDOW_WIDTH * xoffset)
@@ -694,16 +719,7 @@ class TetrisPlayer():
 
 def getScore(params):
     tetrisPlayer = TetrisPlayer()
-    score = tetrisPlayer.play_game(params, 0)
-    score = tetrisPlayer.play_game(params, 1)
-    print([str(x) for x in params])
-    print(score)
-    return [score]
-
-
-if __name__ == "__main__":
-    tetrisPlayer = TetrisPlayer()
     tetrisPlayer.init_board()
-    score = tetrisPlayer.play_game([0.5,0.5,0.5,0.5], 0)
-    print([str(x) for x in [0.5,0.5,0.5,0.5]])
-    print(score)
+    score = tetrisPlayer.play_game(params, 0)
+    ag_constants.ejecution_number += 1
+    return [score]
