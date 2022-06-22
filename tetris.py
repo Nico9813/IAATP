@@ -674,7 +674,6 @@ class TetrisPlayer():
                     blocks.update_current_block()
                 except TopReached:
                     game_over = True
-                    return blocks.score
                     
             
             # Draw background and grid.

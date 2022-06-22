@@ -9,6 +9,8 @@ import numpy as np
 
 from tetris import getScore
 
+import ag_constants
+
 # Create a minimizing fitness function
 # Cantidad de Ciclos de la Corrida
 CANT_CICLOS = 150  # @param {type:"integer"}
@@ -17,9 +19,6 @@ CANT_CICLOS = 150  # @param {type:"integer"}
 # @param {type:"slider", min:1, max:100, step:1}
 CANT_INDIVIDUOS_POBLACION = 100
 CANT_PROPIEDADES = 4
-
-ngen = 5  # Gerations
-npop = 2  # Population
 
 # Inicializa objeto Toolbox auxiliar
 toolbox = base.Toolbox()
@@ -36,18 +35,15 @@ toolbox.register("individual", tools.initRepeat,
                  creator.Individual, toolbox.attr_int, CANT_PROPIEDADES)
 toolbox.register("population", tools.initRepeat, list, toolbox.individual)
 
-pop = toolbox.population(n=npop)
+pop = toolbox.population(n=ag_constants.npop)
 
 print(len(pop))
 
 # registra la función que se va a evaluar
 toolbox.register("evaluate", getScore)
-toolbox.register("mate", tools.cxUniform, indpb=0.5)
 toolbox.register("select", tools.selTournament, tournsize=10)
+toolbox.register("mate", tools.cxUniform, indpb=0.5)
 toolbox.register("mutate", tools.mutShuffleIndexes, indpb=0.5)
-
-ngen = 5  # Gerations
-npop = 2  # Population
 
 hof = tools.ParetoFront()
 stats = tools.Statistics(lambda ind: ind.fitness.values)
@@ -59,12 +55,13 @@ stats.register("min", np.min, axis=0)
 stats.register("max", np.max, axis=0)
 
 # Evolution
-pop, logbook = algorithms.eaMuPlusLambda(pop, toolbox, mu=npop, lambda_=npop,
-                                         cxpb=0.7,   mutpb=0.3, ngen=ngen,
+pop, logbook = algorithms.eaMuPlusLambda(pop, toolbox, mu=ag_constants.npop, lambda_=ag_constants.npop,
+                                         cxpb=0.7,   mutpb=0.3, ngen=ag_constants.ngen,
                                          stats=stats, halloffame=hof)
 
 best_solution = tools.selBest(pop, 1)[0]
-print("")
+
+print("Best solution: %s" % best_solution)
 print("[{}] best_score: {}".format(
     logbook[-1]['gen'], logbook[-1]['min'][0]))
 input("Press Enter to continue...")

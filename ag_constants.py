@@ -1,3 +1,3 @@
-ngen = 100
-npop = 1000
+ngen = 10
+npop = 10
 ejecution_number = 0
